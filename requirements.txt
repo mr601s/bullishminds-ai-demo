@@ -1,0 +1,150 @@
+    session = gr.State(new_session_id())
+    temp = gr.State("")
+
+    with gr.Tab("📝 Assessment"):
+        with gr.Group(elem_classes="main-card"):
+            gr.Markdown("### Student Profile")
+            with gr.Row():
+                nickname = gr.Textbox(label="Nickname (optional)")
+                grade = gr.Dropdown(["6-8","9-10","11-12","Adult"], label="Grade *")
+            county = gr.Textbox(label="County/ZIP (optional)")
+            with gr.Row():
+                style = gr.Dropdown(["Examples","Videos","Step-by-step","Practice first"], label="Learning style *")
+                device = gr.Dropdown(["Smartphone","Tablet","School computer","Personal computer","Shared device"], label="Device *")
+            work = gr.Dropdown(["Part-time job","Farm work","Gig work","Allowance","None"], label="Income/Work *")
+            goal = gr.Dropdown(["Save for car","College/training","Help family","Build credit","Start investing","Emergency fund","Start business"], label="Primary Goal *")
+
+            gr.Markdown("### Knowledge Check")
+            q1 = gr.Radio(["Netflix","Designer shoes","Groceries for weekly family meals","Concert tickets"], label="Need vs want *")
+            q2 = gr.Radio(["$25-50","$200-500 (covers car repair or unexpected cost)","$1000-2000","$5000+"], label="Emergency fund *")
+            q3 = gr.Radio(["Entertainment","Savings and debt payments","Housing","Food"], label="50/30/20: 20% is for *")
+            q4 = gr.Radio(["Annual fee","The interest rate charged on your balance over a year","Credit score","Late fee"], label="APR means *")
+            q5 = gr.Radio(["Checking report","Paying minimum on time","Missing/late payments","Many cards"], label="Hurts score most *")
+            q6 = gr.Radio(["Debit uses your money; credit borrows","Credit safer","Debit builds credit","Same"], label="Debit vs credit *")
+            q7 = gr.Radio(["One stock","Spreading investments","Only crypto","Only savings"], label="Diversification *")
+            q8 = gr.Radio(["Lower risk","Higher risk","No risk","Guaranteed"], label="Higher return usually means *")
+            q9 = gr.Radio(["Down","Same","Up","Unpredictable"], label="More demand, same supply *")
+            q10= gr.Radio(["Prices rising","Stocks rising","Rates falling","Jobs increasing"], label="Inflation *")
+            q11= gr.Radio(["$15.50","$22.50","$25.00","$30.00"], label="Save 15% of $150 *")
+            q12= gr.Radio(["$15","$20","$25","$40"], label="$500 at 4%/yr interest *")
+            q13= gr.Radio(["Spend all","Save all","Save some, spend some responsibly","All into crypto"], label="$200 gift—best choice *")
+
+            gr.Markdown("### Confidence (1-5)")
+            with gr.Row():
+                c1 = gr.Slider(1,5,value=3,step=1,label="Budgeting *")
+                c2 = gr.Slider(1,5,value=3,step=1,label="Credit *")
+                c3 = gr.Slider(1,5,value=3,step=1,label="Investing *")
+                c4 = gr.Slider(1,5,value=3,step=1,label="Economics *")
+
+            submit = gr.Button("📊 Submit & Get Path", elem_classes="btn-primary")
+            err = gr.Markdown()
+            rec = gr.Markdown()
+            edu = gr.Textbox(lines=8, label="Educator Summary")
+            actions = gr.Row(visible=False)
+            with actions:
+                start_btn = gr.Button("✅ Start Recommended", elem_classes="btn-secondary")
+                choose_budget = gr.Button("💰 Choose Budgeting")
+                choose_credit = gr.Button("💳 Choose Credit")
+                choose_invest = gr.Button("📈 Choose Investing")
+                choose_econ = gr.Button("🏛️ Choose Economics")
+
+            submit.click(
+                assess_and_route,
+                inputs=[session,nickname,grade,county,style,device,work,goal,
+                        q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,
+                        c1,c2,c3,c4],
+                outputs=[err,rec,edu,temp,actions]
+            )
+            start_btn.click(finalize_path, inputs=[temp, gr.State("")], outputs=err)
+            choose_budget.click(finalize_path, inputs=[temp, gr.State("Budgeting Basics")], outputs=err)
+            choose_credit.click(finalize_path, inputs=[temp, gr.State("Understanding Credit")], outputs=err)
+            choose_invest.click(finalize_path, inputs=[temp, gr.State("Investing 101")], outputs=err)
+            choose_econ.click(finalize_path, inputs=[temp, gr.State("Economic Principles")], outputs=err)
+
+    with gr.Tab("🤖 AI Assistant"):
+        with gr.Group(elem_classes="main-card"):
+            gr.Markdown("### Ask the AI Assistant")
+            chat = gr.Chatbot(height=420)
+            msg = gr.Textbox(label="Type a question")
+            send = gr.Button("Send", elem_classes="btn-primary")
+            clear = gr.Button("Clear")
+            def chat_fn(m, h):
+                if not m.strip(): return h, ""
+                reply = assistant.respond(m)
+                h = h + [[m, reply]]
+                return h, ""
+            send.click(chat_fn, inputs=[msg, chat], outputs=[chat, msg])
+            msg.submit(chat_fn, inputs=[msg, chat], outputs=[chat, msg])
+            clear.click(lambda: ([], ""), outputs=[chat, msg])
+
+    with gr.Tab("💰 Budgeting L1"):
+        with gr.Group(elem_classes="main-card"):
+            gr.Markdown("### Budgeting Basics — Level 1")
+            nickname2 = gr.Textbox(label="Nickname (optional)")
+            gr.Markdown("Weekly Income")
+            with gr.Row():
+                inc1 = gr.Number(label="Part-time", value=0)
+                inc2 = gr.Number(label="Farm work", value=0)
+                inc3 = gr.Number(label="Odd jobs", value=0)
+                inc4 = gr.Number(label="Allowance", value=0)
+            gr.Markdown("Weekly Expenses")
+            with gr.Row():
+                exp1 = gr.Number(label="Groceries (need)", value=0)
+                exp2 = gr.Number(label="Transport (need)", value=0)
+                exp3 = gr.Number(label="Phone (need)", value=0)
+            with gr.Row():
+                exp4 = gr.Number(label="Streaming (want)", value=0)
+                exp5 = gr.Number(label="Eating out (want)", value=0)
+            save = gr.Slider(0,100,value=10,step=5,label="Save/week")
+            calc_btn = gr.Button("Calculate", elem_classes="btn-primary")
+            calc_out = gr.Textbox(lines=8, label="Budget Feedback")
+            calc_btn.click(budget_calc, inputs=[inc1,inc2,inc3,inc4, exp1,exp2,exp3,exp4,exp5, save], outputs=calc_out)
+
+            gr.Markdown("Quick Check")
+            k1 = gr.Radio(["Groceries","Video game","Concert tickets","New hoodie"], label="Need?")
+            k2 = gr.Radio(["$5","$10","$12","$20"], label="10% of $120?")
+            k3 = gr.Radio(["Spend then save","Save first, then spend","Only save with windfalls","Saving doesn't matter"], label="Best habit?")
+            score_state = gr.State(0)
+            def quiz(k1,k2,k3):
+                s=0
+                if k1=="Groceries": s+=1
+                if k2=="$12": s+=1
+                if k3=="Save first, then spend": s+=1
+                text=f"Score: {s}/3"
+                if s<3:
+                    text+="\nHints: Needs=must-pay; 10% of 120 is 12; Pay yourself first."
+                return text, s
+            qbtn = gr.Button("Check Answers", elem_classes="btn-secondary")
+            qout = gr.Textbox(lines=5, label="Quiz Result")
+            qbtn.click(quiz, inputs=[k1,k2,k3], outputs=[qout, score_state])
+
+            finish = gr.Button("Finish Lesson", elem_classes="btn-primary")
+            done = gr.Markdown()
+            finish.click(complete_budget, inputs=[session, nickname2, score_state], outputs=done)
+
+    with gr.Tab("📊 Teacher"):
+        with gr.Group(elem_classes="main-card"):
+            gr.Markdown("### Teacher Snapshot")
+            refresh1 = gr.Button("Refresh Assessments", elem_classes="btn-secondary")
+            out1 = gr.Markdown()
+            def show_assess():
+                if not os.path.exists(STUDENTS_CSV): return "No assessment data."
+                df = pd.read_csv(STUDENTS_CSV)
+                cols = ["timestamp","student_id","grade_band","module","level","track","score"]
+                # Build view safely
+                if "score" not in df.columns: df["score"] = ""
+                view = df.rename(columns={"recommended_module":"module","recommended_level":"level"}).tail(10)
+                have = [c for c in ["timestamp","student_id","grade_band","module","level","track","score"] if c in view.columns]
+                return view[have].to_markdown(index=False)
+            refresh1.click(lambda: show_assess(), outputs=out1)
+
+            refresh2 = gr.Button("Refresh Completions", elem_classes="btn-secondary")
+            out2 = gr.Markdown()
+            def show_compl():
+                if not os.path.exists(MODULES_CSV): return "No completions yet."
+                df = pd.read_csv(MODULES_CSV)
+                have = [c for c in ["timestamp","student","module","level","score"] if c in df.columns]
+                return df.tail(10)[have].to_markdown(index=False)
+            refresh2.click(lambda: show_compl(), outputs=out2)
+
+    return demo
